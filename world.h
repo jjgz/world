@@ -14,9 +14,6 @@
 /// The maximum amount of object borders.
 #define MAX_OBJECT_BORDERS 128
 
-/// The amount of IR points to use.
-#define WORLD_IR_POINTS 1024
-
 /// The amount of border points to use.
 #define WORLD_ARENA_BORDER_POINTS 128
 
