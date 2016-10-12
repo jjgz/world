@@ -28,12 +28,10 @@ OrientPoint rover_a;
 OrientPoint rover_b;
 bool rover_b_found;
 
-float point_distance_squared(WorldPoint *p0, WorldPoint *p1);
 float point_distance_squared(WorldPoint *p0, WorldPoint *p1) {
     return p0->x * p1->x + p0->y * p1->y;
 }
 
-void add_evict(WorldPoint *points, unsigned *current, unsigned max, WorldPoint npoint);
 void add_evict(WorldPoint *points, unsigned *current, unsigned max, WorldPoint npoint) {
     if (*current < max) {
         points[(*current)++] = npoint;

@@ -60,6 +60,11 @@ typedef struct {
     EndPoint p0, p1;
 } WorldBorder;
 
+/// Compute the distance squared between two WorldPoint objects.
+float point_distance_squared(WorldPoint *p0, WorldPoint *p1);
+/// Choose which point to evict from an array of points when it gets full.
+void add_evict(WorldPoint *points, unsigned *current, unsigned max, WorldPoint npoint);
+
 /// Run to init the world model.
 void world_init(void);
 /// Add an arena border reading at the correct location on rover A.
