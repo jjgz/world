@@ -28,6 +28,35 @@ OrientPoint rover_a;
 OrientPoint rover_b;
 bool rover_b_found;
 
+float point_distance_squared(WorldPoint *p0, WorldPoint *p1);
+float point_distance_squared(WorldPoint *p0, WorldPoint *p1) {
+    return p0->x * p1->x + p0->y * p1->y;
+}
+
+void add_evict(WorldPoint *points, unsigned *current, unsigned max, WorldPoint npoint);
+void add_evict(WorldPoint *points, unsigned *current, unsigned max, WorldPoint npoint) {
+    if (*current < max) {
+        points[(*current)++] = npoint;
+        return;
+    } else {
+        float smallest_distance = point_distance_squared(points + 0, points + 1);
+        unsigned evict_index = 0;
+
+        unsigned i, j;
+        for (i = 0; i < max; i++) {
+            for (j = i + 1; j < max; j++) {
+                float current_distance = point_distance_squared(points + i, points + j);
+                if (current_distance < smallest_distance) {
+                    smallest_distance = current_distance;
+                    evict_index = i;
+                }
+            }
+        }
+
+        points[evict_index] = npoint;
+    }
+}
+
 void world_init() {
     num_arena_borders = 0;
     num_visibility_borders = 0;
