@@ -1,6 +1,47 @@
 #include "world.h"
 
+// Lines which map to borders of the arena.
+WorldBorder arena_borders[MAX_ARENA_BORDERS];
+unsigned num_arena_borders;
+
+// Lines which map to borders of the edge of visibility.
+WorldBorder visibility_borders[MAX_VISIBILITY_BORDERS];
+unsigned num_visibility_borders;
+
+// Lines which map to borders of objects.
+WorldBorder object_borders[MAX_OBJECT_BORDERS];
+unsigned num_object_borders;
+
+// Points at which we discovered an arena border.
+WorldPoint arena_border_points[WORLD_ARENA_BORDER_POINTS];
+unsigned num_arena_border_points;
+
+// Points at which we know the area is clear.
+WorldPoint clear_points[WORLD_CLEAR_POINTS];
+unsigned num_clear_points;
+
+// Points at which we know the area is occupied.
+WorldPoint occupied_points[WORLD_OCCUPIED_POINTS];
+unsigned num_occupied_points;
+
+OrientPoint rover_a;
+OrientPoint rover_b;
+bool rover_b_found;
+
 void world_init() {
+    num_arena_borders = 0;
+    num_visibility_borders = 0;
+    num_object_borders = 0;
+    num_arena_border_points = 0;
+    num_clear_points = 0;
+    num_occupied_points = 0;
+
+    rover_a.angle = 0.0;
+    rover_a.av = 0.0;
+    rover_a.point.x = 0.0;
+    rover_a.point.y = 0.0;
+
+    rover_b_found = false;
 }
 
 void world_add_arena_border_reading(float variance) {
