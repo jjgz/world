@@ -90,7 +90,12 @@ void test_movement_border() {
     // Add a line of points to the world.
     unsigned i;
     for (i = 0; i < MAX_TEST_MOVEMENT_POINTS; i++) {
-        OrientPoint p = {{i/(float)MAX_TEST_MOVEMENT_POINTS*5.0f, i/(float)MAX_TEST_MOVEMENT_POINTS*5.0f, 0.0}, 3.14f/4, 0.0};
+        OrientPoint p;
+        p.point.x = (float)i/(float)MAX_TEST_MOVEMENT_POINTS*5.0f;
+        p.point.y = (float)i/(float)MAX_TEST_MOVEMENT_POINTS*5.0f;
+        p.point.v = 0.0;
+        p.angle = 0.0;
+        p.av = 0.0;
         world_add_movement_a(p, p);
         world_add_arena_border_reading();
     }

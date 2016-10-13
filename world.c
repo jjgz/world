@@ -74,8 +74,8 @@ void world_init() {
 }
 
 void world_add_arena_border_reading() {
-    WorldPoint p = {ROVER_HLENGTH * cosf(rover_a.angle) + ROVER_HWIDTH * sinf(rover_a.angle),
-        -ROVER_HWIDTH * cosf(rover_a.angle) + ROVER_HLENGTH * sinf(rover_a.angle),
+    WorldPoint p = {ROVER_HLENGTH * cosf(rover_a.angle) + ROVER_HWIDTH * sinf(rover_a.angle) + rover_a.point.x,
+        -ROVER_HWIDTH * cosf(rover_a.angle) + ROVER_HLENGTH * sinf(rover_a.angle) + rover_a.point.y,
         BORDER_READING_VARIANCE};
     add_evict(arena_border_points, &num_arena_border_points, WORLD_ARENA_BORDER_POINTS, p);
 }
