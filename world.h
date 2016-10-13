@@ -6,22 +6,22 @@
 #define WORLD_PADDING
 
 /// The maximum amount of arena borders.
-#define MAX_ARENA_BORDERS 32
+#define MAX_ARENA_BORDERS 128
 
 /// The maximum amount of visibility borders.
-#define MAX_VISIBILITY_BORDERS 256
+#define MAX_VISIBILITY_BORDERS 512
 
 /// The maximum amount of object borders.
-#define MAX_OBJECT_BORDERS 128
+#define MAX_OBJECT_BORDERS 512
 
 /// The amount of border points to use.
-#define WORLD_ARENA_BORDER_POINTS 128
+#define WORLD_ARENA_BORDER_POINTS 512
 
 /// The amount of clear area points to use.
-#define WORLD_CLEAR_POINTS 1024
+#define WORLD_CLEAR_POINTS 2048
 
 /// The amount of occupied area points to use.
-#define WORLD_OCCUPIED_POINTS 1024
+#define WORLD_OCCUPIED_POINTS 2048
 
 /// The ratio of the closest line's varriance the point be within to be considered part of that line.
 /// If the point is outside of this distance, then the point must have a line placed on top of it.
@@ -29,6 +29,14 @@
 
 /// The maximum variance that a line can have before another line is created adjacent to it.
 #define WORLD_LINE_MAX_VARIANCE 1.0f
+
+/// Half the width of the rover.
+#define ROVER_HWIDTH 0.1f
+/// Half the length of the rover.
+#define ROVER_HLENGTH 0.2f
+
+/// Variance of a border reading
+#define BORDER_READING_VARIANCE 0.01f
 
 /// Used for the world to produce output points with different variances.
 typedef struct {
@@ -68,25 +76,31 @@ void add_evict(WorldPoint *points, unsigned *current, unsigned max, WorldPoint n
 /// Run to init the world model.
 void world_init(void);
 /// Add an arena border reading at the correct location on rover A.
-void world_add_arena_border_reading(float variance);
+void world_add_arena_border_reading(void);
 /// Add an ir sensor reading from the front-facing IR sensor on rover A.
-void world_add_front_ir_sensor_reading(float distance, float variance);
+void world_add_front_ir_sensor_reading(float distance);
 /// Add an ir sensor reading from the left-facing IR sensor on rover A.
-void world_add_left_ir_sensor_reading(float distance, float variance);
+void world_add_left_ir_sensor_reading(float distance);
 /// Add an ir sensor reading from the right-facing IR sensor on rover A.
-void world_add_right_ir_sensor_reading(float distance, float variance);
+void world_add_right_ir_sensor_reading(float distance);
 /// Add an ultrasonic sensor reading from the front-facing ultrasonic sensor on rover A.
-void world_add_front_ultrasonic_reading(float distance, float variance);
+void world_add_front_ultrasonic_reading(float distance);
 /// Add an ultrasonic sensor reading from the left-facing ultrasonic sensor on rover A.
-void world_add_left_ultrasonic_reading(float distance, float variance);
+void world_add_left_ultrasonic_reading(float distance);
 /// Add an ultrasonic sensor reading from the right-facing ultrasonic sensor on rover A.
-void world_add_right_ultrasonic_reading(float distance, float variance);
+void world_add_right_ultrasonic_reading(float distance);
 /// Add movement from rover A's movement module.
-void world_add_movement_a(WorldPoint from, WorldPoint to);
+void world_add_movement_a(OrientPoint from, OrientPoint to);
 /// Add movement from rover B's movement module.
-void world_add_movement_b(WorldPoint from, WorldPoint to);
+void world_add_movement_b(OrientPoint from, OrientPoint to);
 /// Cycle the world.
 void world_update(void);
+/// Returns the number of points and assigns to *points the array of points.
+unsigned world_retrieve_arena_border_points(WorldPoint **points);
+/// Returns the number of points and assigns to *points the array of points.
+unsigned world_retrieve_clear_points(WorldPoint **points);
+/// Returns the number of points and assigns to *points the array of points.
+unsigned world_retrieve_occupied_points(WorldPoint **points);
 /// Returns the number of borders and assigns to *borders the array of borders.
 unsigned world_retrieve_arena_borders(WorldBorder **borders);
 /// Returns the number of borders and assigns to *borders the array of borders.

@@ -1,35 +1,37 @@
 #include "world.h"
+#include <stdlib.h>
+#include <math.h>
 
 // Lines which map to borders of the arena.
-WorldBorder arena_borders[MAX_ARENA_BORDERS];
-unsigned num_arena_borders;
+static WorldBorder arena_borders[MAX_ARENA_BORDERS];
+static unsigned num_arena_borders;
 
 // Lines which map to borders of the edge of visibility.
-WorldBorder visibility_borders[MAX_VISIBILITY_BORDERS];
-unsigned num_visibility_borders;
+static WorldBorder visibility_borders[MAX_VISIBILITY_BORDERS];
+static unsigned num_visibility_borders;
 
 // Lines which map to borders of objects.
-WorldBorder object_borders[MAX_OBJECT_BORDERS];
-unsigned num_object_borders;
+static WorldBorder object_borders[MAX_OBJECT_BORDERS];
+static unsigned num_object_borders;
 
 // Points at which we discovered an arena border.
-WorldPoint arena_border_points[WORLD_ARENA_BORDER_POINTS];
-unsigned num_arena_border_points;
+static WorldPoint arena_border_points[WORLD_ARENA_BORDER_POINTS];
+static unsigned num_arena_border_points;
 
 // Points at which we know the area is clear.
-WorldPoint clear_points[WORLD_CLEAR_POINTS];
-unsigned num_clear_points;
+static WorldPoint clear_points[WORLD_CLEAR_POINTS];
+static unsigned num_clear_points;
 
 // Points at which we know the area is occupied.
-WorldPoint occupied_points[WORLD_OCCUPIED_POINTS];
-unsigned num_occupied_points;
+static WorldPoint occupied_points[WORLD_OCCUPIED_POINTS];
+static unsigned num_occupied_points;
 
-OrientPoint rover_a;
-OrientPoint rover_b;
-bool rover_b_found;
+static OrientPoint rover_a;
+static OrientPoint rover_b;
+static bool rover_b_found;
 
 float point_distance_squared(WorldPoint *p0, WorldPoint *p1) {
-    return p0->x * p1->x + p0->y * p1->y;
+    return powf(p0->x - p1->x, 2) + powf(p0->y - p1->y, 2);
 }
 
 void add_evict(WorldPoint *points, unsigned *current, unsigned max, WorldPoint npoint) {
@@ -71,34 +73,56 @@ void world_init() {
     rover_b_found = false;
 }
 
-void world_add_arena_border_reading(float variance) {
+void world_add_arena_border_reading() {
+    WorldPoint p = {ROVER_HLENGTH * cosf(rover_a.angle) + ROVER_HWIDTH * sinf(rover_a.angle),
+        -ROVER_HWIDTH * cosf(rover_a.angle) + ROVER_HLENGTH * sinf(rover_a.angle),
+        BORDER_READING_VARIANCE};
+    add_evict(arena_border_points, &num_arena_border_points, WORLD_ARENA_BORDER_POINTS, p);
 }
 
-void world_add_front_ir_sensor_reading(float distance, float variance) {
+void world_add_front_ir_sensor_reading(float distance) {
 }
 
-void world_add_left_ir_sensor_reading(float distance, float variance) {
+void world_add_left_ir_sensor_reading(float distance) {
 }
 
-void world_add_right_ir_sensor_reading(float distance, float variance) {
+void world_add_right_ir_sensor_reading(float distance) {
 }
 
-void world_add_front_ultrasonic_reading(float distance, float variance) {
+void world_add_front_ultrasonic_reading(float distance) {
 }
 
-void world_add_left_ultrasonic_reading(float distance, float variance) {
+void world_add_left_ultrasonic_reading(float distance) {
 }
 
-void world_add_right_ultrasonic_reading(float distance, float variance) {
+void world_add_right_ultrasonic_reading(float distance) {
 }
 
-void world_add_movement_a(WorldPoint from, WorldPoint to) {
+void world_add_movement_a(OrientPoint from, OrientPoint to) {
+    rover_a = to;
 }
 
-void world_add_movement_b(WorldPoint from, WorldPoint to) {
+void world_add_movement_b(OrientPoint from, OrientPoint to) {
+    rover_b = to;
+    rover_b_found = true;
 }
 
 void world_update() {
+}
+
+unsigned world_retrieve_arena_border_points(WorldPoint **points) {
+    *points = arena_border_points;
+    return num_arena_border_points;
+}
+
+unsigned world_retrieve_clear_points(WorldPoint **points) {
+    *points = clear_points;
+    return num_clear_points;
+}
+
+unsigned world_retrieve_occupied_points(WorldPoint **points) {
+    *points = occupied_points;
+    return num_occupied_points;
 }
 
 unsigned world_retrieve_arena_borders(WorldBorder **borders) {
