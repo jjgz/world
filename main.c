@@ -4,6 +4,21 @@
 #include <math.h>
 
 #include "world.h"
+#include "draw.h"
+#include "physics.h"
+
+#define MAX_TEST_ADD_EVICT_POINTS 2048
+#define MAX_TEST_ADD_EVICT_EVICTS 512
+#define TEST_ADD_EVICT_SEED 8
+
+#define TEST_PHYSICS_POINTS 1024
+#define TEST_PHYSICS_FRAMES 512
+#define TEST_PHYSICS_SEED 123
+
+static VariancePoint test_points[MAX_TEST_ADD_EVICT_POINTS];
+
+static VariancePoint physics_points[TEST_PHYSICS_POINTS];
+static AbsolutePoint physics_velocities[TEST_PHYSICS_POINTS];
 
 size_t get_world_bytes(void);
 size_t get_world_bytes() {
@@ -11,13 +26,6 @@ size_t get_world_bytes() {
         (WORLD_CLEAR_POINTS + WORLD_OCCUPIED_POINTS) * sizeof(VariancePoint) +
         sizeof(OrientPoint);
 }
-
-#define MAX_TEST_ADD_EVICT_POINTS 512
-#define MAX_TEST_ADD_EVICT_EVICTS 16384
-#define TEST_EVICT_GRAPH_PERIOD 2500
-#define TEST_ADD_EVICT_SEED 8
-
-static VariancePoint test_points[MAX_TEST_ADD_EVICT_POINTS];
 
 VariancePoint rand_point(void);
 VariancePoint rand_point() {
@@ -44,46 +52,105 @@ float test_average_closest_distance(unsigned count) {
     return total_distance;
 }
 
-void test_draw(VariancePoint *points, unsigned total, unsigned n);
-void test_draw(VariancePoint *points, unsigned total, unsigned n) {
-    char filenamebuf[100];
-    sprintf(filenamebuf, "data%u.temp", n);
-    FILE * temp = fopen(filenamebuf, "w");
-    FILE * gnuplotPipe = popen ("gnuplot -persistent", "w");
+void render_points(VariancePoint *points, unsigned total);
+void render_points(VariancePoint *points, unsigned total) {
+    draw_render_start();
     unsigned i;
     for (i = 0; i < total; i++) {
-        fprintf(temp, "%f %f \n", (double)points[i].p.x, (double)points[i].p.y); //Write the data to a temporary file
+        draw_render_point((int)(points[i].p.x / 5.0f * (float)DRAW_DIMS), (int)(points[i].p.y / 5.0f * (float)DRAW_DIMS));
     }
-    // Set title.
-    fprintf(gnuplotPipe, "set title \"Test Plot %u\" \n", n);
-    // Set xrange.
-    fprintf(gnuplotPipe, "set xrange [0:5] \n");
-    // Set xrange.
-    fprintf(gnuplotPipe, "set yrange [0:5] \n");
-    // Plot file.
-    fprintf(gnuplotPipe, "plot 'data%u.temp' \n", n);
-    fclose(temp);
-    fclose(gnuplotPipe);
+    draw_render_end();
+}
+
+void test_draw(VariancePoint *points, unsigned total);
+void test_draw(VariancePoint *points, unsigned total) {
+    draw_init();
+    render_points(points, total);
+    // Wait for window to be closed.
+    while (!draw_check_close());
+    draw_close();
+}
+
+void test_physics(void);
+void test_physics() {
+    srand(TEST_PHYSICS_SEED);
+    unsigned count = 0;
+    unsigned i;
+    draw_init();
+    while (count < TEST_PHYSICS_POINTS) {
+        add_evict(physics_points, &count, TEST_PHYSICS_POINTS, rand_point());
+        render_points(physics_points, count);
+
+        if (draw_check_close()) {
+            draw_close();
+            return;
+        }
+    }
+
+    for (i = 0; i < TEST_PHYSICS_POINTS; i++) {
+        physics_velocities[i].x = 0.0;
+        physics_velocities[i].y = 0.0;
+    }
+
+    for (i = 0; i < TEST_PHYSICS_FRAMES; i++) {
+        unsigned j, k;
+        for (j = 0; j < count; j++) {
+            for (k = j + 1; k < count; k++) {
+                AbsolutePoint a = phys_gravity(&physics_points[j].p, &physics_points[k].p, 0.1f, 0.000001f);
+                physics_velocities[j].x += a.x;
+                physics_velocities[j].y += a.y;
+                physics_velocities[k].x -= a.x;
+                physics_velocities[k].y -= a.y;
+            }
+        }
+
+        for (j = 0; j < TEST_PHYSICS_POINTS; j++) {
+            phys_drag(physics_velocities + j, 0.96);
+            physics_points[j].p.x += physics_velocities[j].x;
+            physics_points[j].p.y += physics_velocities[j].y;
+        }
+
+        render_points(physics_points, TEST_PHYSICS_POINTS);
+
+        if (draw_check_close()) {
+            draw_close();
+            return;
+        }
+    }
+
+    draw_close();
 }
 
 void test_add_evict(void);
 void test_add_evict() {
     srand(TEST_ADD_EVICT_SEED);
+    draw_init();
     unsigned count = 0;
     while (count < MAX_TEST_ADD_EVICT_POINTS) {
         add_evict(test_points, &count, MAX_TEST_ADD_EVICT_POINTS, rand_point());
+        render_points(test_points, count);
+        if (draw_check_close()) {
+            draw_close();
+            return;
+        }
     }
 
     unsigned i;
     for (i = 0; i < MAX_TEST_ADD_EVICT_EVICTS; i++) {
         add_evict(test_points, &count, MAX_TEST_ADD_EVICT_POINTS, rand_point());
-        if (i % TEST_EVICT_GRAPH_PERIOD == 0)
-            test_draw(test_points, MAX_TEST_ADD_EVICT_POINTS, i / TEST_EVICT_GRAPH_PERIOD);
+        render_points(test_points, count);
+        if (draw_check_close()) {
+            draw_close();
+            return;
+        }
     }
+
+    draw_close();
 }
 
 int main() {
     printf("World global byte requirement: %lu\n", get_world_bytes());
+    test_physics();
     test_add_evict();
     printf("Finished...\n");
     getchar();

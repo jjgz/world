@@ -2,6 +2,11 @@
 #include <stdlib.h>
 #include <math.h>
 
+typedef struct {
+    AbsolutePoint pos;
+    AbsolutePoint vel;
+} VelocityPoint;
+
 // Points at which we discovered an arena border.
 static AbsolutePoint arena_border_points[MAX_BORDER_POINTS];
 static unsigned num_arena_border_points;
@@ -17,7 +22,8 @@ static unsigned num_occupied_points;
 static OrientPoint rover;
 
 // Points at which we think there is a target.
-static VariancePoint targets[WORLD_TARGET_POINTS_MAX];
+static VelocityPoint targets[WORLD_TARGET_POINTS_MAX];
+static VariancePoint target_stat_points[WORLD_TARGET_POINTS_MAX];
 static unsigned num_targets;
 
 float point_distance_squared(AbsolutePoint *p0, AbsolutePoint *p1) {
@@ -43,11 +49,20 @@ void add_evict(VariancePoint *points, unsigned *current, unsigned max, VarianceP
             }
         }
 
+        for (i = 0; i < max; i++) {
+            float current_distance = point_distance_squared(&(points + i)->p, &npoint.p);
+            if (current_distance < smallest_distance) {
+                // The new point has the smallest distance, so dont add it.
+                return;
+            }
+        }
+
         points[evict_index] = npoint;
     }
 }
 
-void world_init(OrientPoint _rover, unsigned _num_targets, AbsolutePoint *borders, unsigned total_border_points) {
+void world_init(OrientPoint _rover, unsigned _num_targets, float initial_target_spawn_radius,
+                AbsolutePoint *borders, unsigned total_border_points) {
     num_arena_border_points = total_border_points;
     unsigned i;
     for (i = 0; i < total_border_points; i++)
@@ -59,7 +74,8 @@ void world_init(OrientPoint _rover, unsigned _num_targets, AbsolutePoint *border
     num_targets = _num_targets;
     // TODO: Intialize these to be in a uniform circle around the center.
     for (i = 0; i < num_targets; i++) {
-        VariancePoint p = {{0.0, 0.0}, 1.0, {0, 0, 0, 0}};
+        float angle = i * 2 * (float)M_PI / num_targets;
+        VelocityPoint p = {{initial_target_spawn_radius * cosf(angle), initial_target_spawn_radius * sinf(angle)}, {0.0, 0.0}};
         targets[i] = p;
     }
 }
@@ -110,6 +126,12 @@ OrientPoint* world_retrieve_rover() {
 }
 
 unsigned world_retrieve_targets(VariancePoint **_targets) {
-    *_targets = targets;
+    unsigned i;
+    for (i = 0; i < num_targets; i++) {
+        target_stat_points[i].p = targets[i].pos;
+        // TODO: Calculate variance.
+        target_stat_points[i].v = 0.1f;
+    }
+    *_targets = target_stat_points;
     return num_targets;
 }

@@ -46,7 +46,8 @@ float point_distance_squared(AbsolutePoint *p0, AbsolutePoint *p1);
 void add_evict(VariancePoint *points, unsigned *current, unsigned max, VariancePoint npoint);
 
 /// Run to init the world model.
-void world_init(OrientPoint rover_a, unsigned num_targets, AbsolutePoint *borders, unsigned total_border_points);
+void world_init(OrientPoint rover_a, unsigned num_targets, float initial_target_spawn_radius,
+                AbsolutePoint *borders, unsigned total_border_points);
 /// Add an ir sensor reading from the front-facing IR sensor on rover A.
 void world_add_front_ir_sensor_reading(float distance);
 /// Add an ir sensor reading from the left-facing IR sensor on rover A.
