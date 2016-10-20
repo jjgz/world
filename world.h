@@ -17,6 +17,12 @@
 /// The max amount of targets to track.
 #define WORLD_TARGET_POINTS_MAX 32
 
+#define WORLD_IR_SENSOR_POINTS 8
+
+#define ADD_EVICT_ROWS 256
+
+#define MIN_INTERSECTION_DENOM 0.000001f
+
 typedef struct {
     float x, y;
 } AbsolutePoint;
@@ -32,7 +38,7 @@ typedef struct {
 /// Used for the world to produce output points with different variances.
 typedef struct {
     VariancePoint vp;
-    double angle, av;
+    float angle, av;
 } OrientPoint;
 
 /// Used for the border of any world line.
@@ -42,8 +48,18 @@ typedef struct {
 
 /// Compute the distance squared between two AbsolutePoint objects.
 float point_distance_squared(AbsolutePoint *p0, AbsolutePoint *p1);
+/// Compute the distance squared between two AbsolutePoint objects.
+float delta_distance_squared(AbsolutePoint delta);
+/// Compute the delta vector between two AbsolutePoint objects.
+AbsolutePoint point_delta(AbsolutePoint *from, AbsolutePoint *to);
+/// Get the delta from an angle and a magnitude.
+AbsolutePoint angle_delta(float angle, float mag);
+/// Get the point at which two lines (specified by their endpoints) intersect.
+/// If null is passed only checks for intersection.
+bool intersection_point(AbsolutePoint a0, AbsolutePoint a1, AbsolutePoint b0,
+                        AbsolutePoint b1, AbsolutePoint *intersection);
 /// Choose which point to evict from an array of points when it gets full.
-void add_evict(VariancePoint *points, unsigned *current, unsigned max, VariancePoint npoint);
+void add_evict(VariancePoint *points, unsigned *current, unsigned max, unsigned *evict_row, VariancePoint npoint);
 
 /// Run to init the world model.
 void world_init(OrientPoint rover_a, unsigned num_targets, float initial_target_spawn_radius,
@@ -61,7 +77,7 @@ void world_add_left_ultrasonic_reading(float distance);
 /// Add an ultrasonic sensor reading from the right-facing ultrasonic sensor on rover A.
 void world_add_right_ultrasonic_reading(float distance);
 /// Add movement from rover A's movement module.
-void world_add_movement(OrientPoint movement);
+void world_update_movement(OrientPoint movement);
 /// Cycle the world.
 void world_update(void);
 /// Returns the number of points and assigns to *points the array of points.

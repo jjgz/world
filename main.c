@@ -15,6 +15,12 @@
 #define TEST_PHYSICS_FRAMES 512
 #define TEST_PHYSICS_SEED 123
 
+#define TEST_WORLD_SEED 18274
+#define TEST_WORLD_WALKS 1000
+#define TEST_WORLD_WALLS 20
+#define TEST_WORLD_WALK_DIS_DELTA 0.1
+#define TEST_WORLD_WALK_ANG_DELTA 0.1
+
 static VariancePoint test_points[MAX_TEST_ADD_EVICT_POINTS];
 
 static VariancePoint physics_points[TEST_PHYSICS_POINTS];
@@ -30,6 +36,12 @@ size_t get_world_bytes() {
 VariancePoint rand_point(void);
 VariancePoint rand_point() {
     VariancePoint p = {{rand() / (float)RAND_MAX * 5.0f, rand() / (float)RAND_MAX * 5.0f}, rand() / (float)RAND_MAX * 5.0f, {0, 0, 0, 0}};
+    return p;
+}
+
+AbsolutePoint rand_abs_point(void);
+AbsolutePoint rand_abs_point() {
+    AbsolutePoint p = {rand() / (float)RAND_MAX * 5.0f, rand() / (float)RAND_MAX * 5.0f};
     return p;
 }
 
@@ -77,8 +89,9 @@ void test_physics() {
     unsigned count = 0;
     unsigned i;
     draw_init();
+    unsigned evict_row = 0;
     while (count < TEST_PHYSICS_POINTS) {
-        add_evict(physics_points, &count, TEST_PHYSICS_POINTS, rand_point());
+        add_evict(physics_points, &count, TEST_PHYSICS_POINTS, &evict_row, rand_point());
         render_points(physics_points, count);
 
         if (draw_check_close()) {
@@ -105,7 +118,7 @@ void test_physics() {
         }
 
         for (j = 0; j < TEST_PHYSICS_POINTS; j++) {
-            phys_drag(physics_velocities + j, 0.96);
+            phys_drag(physics_velocities + j, 0.96f);
             physics_points[j].p.x += physics_velocities[j].x;
             physics_points[j].p.y += physics_velocities[j].y;
         }
@@ -126,8 +139,9 @@ void test_add_evict() {
     srand(TEST_ADD_EVICT_SEED);
     draw_init();
     unsigned count = 0;
+    unsigned evict_row;
     while (count < MAX_TEST_ADD_EVICT_POINTS) {
-        add_evict(test_points, &count, MAX_TEST_ADD_EVICT_POINTS, rand_point());
+        add_evict(test_points, &count, MAX_TEST_ADD_EVICT_POINTS, &evict_row, rand_point());
         render_points(test_points, count);
         if (draw_check_close()) {
             draw_close();
@@ -137,7 +151,7 @@ void test_add_evict() {
 
     unsigned i;
     for (i = 0; i < MAX_TEST_ADD_EVICT_EVICTS; i++) {
-        add_evict(test_points, &count, MAX_TEST_ADD_EVICT_POINTS, rand_point());
+        add_evict(test_points, &count, MAX_TEST_ADD_EVICT_POINTS, &evict_row, rand_point());
         render_points(test_points, count);
         if (draw_check_close()) {
             draw_close();
@@ -148,10 +162,127 @@ void test_add_evict() {
     draw_close();
 }
 
+void draw_world(void);
+void draw_world() {
+    unsigned k;
+    draw_render_start();
+
+    VariancePoint *clear_points;
+    unsigned num_clears = world_retrieve_clear_points(&clear_points);
+    for (k = 0; k < num_clears; k++)
+        draw_render_color_point((int)(clear_points[k].p.x / 5.0f * (float)DRAW_DIMS), (int)(clear_points[k].p.y / 5.0f * (float)DRAW_DIMS), 0, 0, 0xFF);
+
+    VariancePoint *occupied_points;
+    unsigned num_occupied = world_retrieve_occupied_points(&occupied_points);
+    for (k = 0; k < num_occupied; k++)
+        draw_render_color_point((int)(occupied_points[k].p.x / 5.0f * (float)DRAW_DIMS), (int)(occupied_points[k].p.y / 5.0f * (float)DRAW_DIMS), 0xFF, 0, 0);
+
+    draw_render_rover((int)(world_retrieve_rover()->vp.p.x / 5.0f * (float)DRAW_DIMS), (int)(world_retrieve_rover()->vp.p.y / 5.0f * (float)DRAW_DIMS), world_retrieve_rover()->angle);
+
+    draw_render_end();
+}
+
+void test_world(void);
+void test_world() {
+    srand(TEST_WORLD_SEED);
+    draw_init();
+
+    // Initialize rover position and orientation.
+    OrientPoint rover_point = {{{2.0, 2.0}, 0.0, {0, 0, 0, 0}}, 0.0, 0.0};
+
+    world_init(rover_point, 0, 0, 0, 0);
+
+    AbsolutePoint walls[TEST_WORLD_WALLS][2];
+
+    unsigned i, j, k;
+
+    for (i = 0; i < TEST_WORLD_WALLS; i++) {
+        walls[i][0] = rand_abs_point();
+        walls[i][1] = rand_abs_point();
+    }
+
+    for (i = 0; i < TEST_WORLD_WALKS; i++) {
+        AbsolutePoint moving_to = rand_abs_point();
+        AbsolutePoint delta = point_delta(&rover_point.vp.p, &moving_to);
+        // Compute distance to travel.
+        float delta_distance = sqrtf(delta_distance_squared(delta));
+        unsigned move_segments = (unsigned)(fabs((double)delta_distance) / TEST_WORLD_WALK_DIS_DELTA);
+        // Compute the angle to travel at.
+        float delta_angle = (float)atan2((double)delta.y, (double)delta.x) - rover_point.angle;
+        unsigned angle_segments = (unsigned)(fabs((double)delta_angle) / TEST_WORLD_WALK_ANG_DELTA);
+
+        AbsolutePoint move_delta = {delta.x / move_segments, delta.y / move_segments};
+
+        // Turn towards the point.
+        for (j = 0; j < angle_segments; j++) {
+            rover_point.angle += delta_angle / angle_segments;
+            AbsolutePoint angle_s_del = angle_delta(rover_point.angle, 0.1f);
+            AbsolutePoint angle_del = angle_delta(rover_point.angle, 1.0f + 0.1f);
+            AbsolutePoint start_range_pos = {rover_point.vp.p.x + angle_s_del.x, rover_point.vp.p.y + angle_s_del.y};
+            AbsolutePoint end_range_pos = {rover_point.vp.p.x + angle_del.x, rover_point.vp.p.y + angle_del.y};
+            world_update_movement(rover_point);
+
+            float shortest_distance = 1.0;
+            AbsolutePoint intersection;
+            for (k = 0; k < TEST_WORLD_WALLS; k++) {
+                bool intersected = intersection_point(walls[k][0], walls[k][1], start_range_pos, end_range_pos, &intersection);
+                if (intersected) {
+                    float next_distance = sqrtf(point_distance_squared(&start_range_pos, &intersection));
+                    if (next_distance < shortest_distance)
+                        shortest_distance = next_distance;
+                }
+            }
+
+            world_add_front_ir_sensor_reading(shortest_distance);
+
+            draw_world();
+
+            if (draw_check_close()) {
+                draw_close();
+                return;
+            }
+        }
+
+        // Move towards the point.
+        for (j = 0; j < move_segments; j++) {
+            rover_point.vp.p.x += move_delta.x;
+            rover_point.vp.p.y += move_delta.y;
+            AbsolutePoint angle_s_del = angle_delta(rover_point.angle, 0.1f);
+            AbsolutePoint angle_del = angle_delta(rover_point.angle, 1.0f + 0.1f);
+            AbsolutePoint start_range_pos = {rover_point.vp.p.x + angle_s_del.x, rover_point.vp.p.y + angle_s_del.y};
+            AbsolutePoint end_range_pos = {rover_point.vp.p.x + angle_del.x, rover_point.vp.p.y + angle_del.y};
+            world_update_movement(rover_point);
+
+            float shortest_distance = 1.0;
+            AbsolutePoint intersection;
+            for (k = 0; k < TEST_WORLD_WALLS; k++) {
+                bool intersected = intersection_point(walls[k][0], walls[k][1], start_range_pos, end_range_pos, &intersection);
+                if (intersected) {
+                    float next_distance = sqrtf(point_distance_squared(&start_range_pos, &intersection));
+                    if (next_distance < shortest_distance)
+                        shortest_distance = next_distance;
+                }
+            }
+
+            world_add_front_ir_sensor_reading(shortest_distance);
+
+            draw_world();
+
+            if (draw_check_close()) {
+                draw_close();
+                return;
+            }
+        }
+    }
+
+    draw_close();
+}
+
 int main() {
     printf("World global byte requirement: %lu\n", get_world_bytes());
-    test_physics();
     test_add_evict();
+    test_physics();
+    test_world();
     printf("Finished...\n");
     getchar();
     return 0;
