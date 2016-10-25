@@ -12,7 +12,7 @@
 #define WORLD_CLEAR_POINTS 4096
 
 /// The amount of occupied area points to use.
-#define WORLD_OCCUPIED_POINTS 4096
+#define WORLD_OCCUPIED_POINTS 3072
 
 /// The max amount of targets to track.
 #define WORLD_TARGET_POINTS_MAX 32
