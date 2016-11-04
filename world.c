@@ -138,11 +138,38 @@ void world_init(OrientPoint _rover, unsigned _num_targets, float initial_target_
     }
 }
 
-void world_add_front_ir_sensor_reading(float distance) {
-    static const float front_ir_spacing = 0.1f;
+void world_add_front_right_ir_sensor_reading(float distance) {
     static const float longest_ir_distance = 0.5f;
     AbsolutePoint start = rover.vp.p;
-    AbsolutePoint initial_spacing = angle_delta(rover.angle, front_ir_spacing);
+    AbsolutePoint initial_spacing = angle_delta(rover.angle - 0.2915f, 0.2175f);
+    start.x += initial_spacing.x;
+    start.y += initial_spacing.y;
+    float distance_effective;
+    if (distance < longest_ir_distance) {
+        distance_effective = distance;
+    } else {
+        distance_effective = longest_ir_distance;
+    }
+    AbsolutePoint point_spacing = angle_delta(rover.angle, distance_effective / WORLD_IR_SENSOR_POINTS);
+    unsigned i;
+    for (i = 0; i < WORLD_IR_SENSOR_POINTS; i++) {
+        // TODO: Compute variance.
+        VariancePoint p = {start, 0.0, {0, 0, 0, 0}};
+        add_evict(clear_points, &num_clear_points, WORLD_CLEAR_POINTS, &clear_points_evict_row, p);
+        start.x += point_spacing.x;
+        start.y += point_spacing.y;
+    }
+    // TODO: Correct max distance.
+    if (distance < longest_ir_distance) {
+        VariancePoint p = {start, 0.0, {0, 0, 0, 0}};
+        add_evict(occupied_points, &num_occupied_points, WORLD_OCCUPIED_POINTS, &occupied_points_evict_row, p);
+    }
+}
+
+void world_add_front_left_ir_sensor_reading(float distance) {
+    static const float longest_ir_distance = 0.5f;
+    AbsolutePoint start = rover.vp.p;
+    AbsolutePoint initial_spacing = angle_delta(rover.angle + 0.197395f, 0.212459f);
     start.x += initial_spacing.x;
     start.y += initial_spacing.y;
     float distance_effective;
@@ -168,39 +195,9 @@ void world_add_front_ir_sensor_reading(float distance) {
 }
 
 void world_add_left_ir_sensor_reading(float distance) {
-    static const float left_ir_spacing = 0.05f;
     static const float longest_ir_distance = 0.5f;
     AbsolutePoint start = rover.vp.p;
-    AbsolutePoint initial_spacing = angle_delta(rover.angle - (float)M_PI / 2, left_ir_spacing);
-    start.x += initial_spacing.x;
-    start.y += initial_spacing.y;
-    float distance_effective;
-    if (distance < longest_ir_distance) {
-        distance_effective = distance;
-    } else {
-        distance_effective = longest_ir_distance;
-    }
-    AbsolutePoint point_spacing = angle_delta(rover.angle - (float)M_PI / 2, distance_effective / WORLD_IR_SENSOR_POINTS);
-    unsigned i;
-    for (i = 0; i < WORLD_IR_SENSOR_POINTS; i++) {
-        // TODO: Compute variance.
-        VariancePoint p = {start, 0.0, {0, 0, 0, 0}};
-        add_evict(clear_points, &num_clear_points, WORLD_CLEAR_POINTS, &clear_points_evict_row, p);
-        start.x += point_spacing.x;
-        start.y += point_spacing.y;
-    }
-    // TODO: Correct max distance.
-    if (distance < longest_ir_distance) {
-        VariancePoint p = {start, 0.0, {0, 0, 0, 0}};
-        add_evict(occupied_points, &num_occupied_points, WORLD_OCCUPIED_POINTS, &occupied_points_evict_row, p);
-    }
-}
-
-void world_add_right_ir_sensor_reading(float distance) {
-    static const float right_ir_spacing = 0.05f;
-    static const float longest_ir_distance = 0.5f;
-    AbsolutePoint start = rover.vp.p;
-    AbsolutePoint initial_spacing = angle_delta(rover.angle + (float)M_PI / 2, right_ir_spacing);
+    AbsolutePoint initial_spacing = angle_delta(rover.angle + (float)M_PI / 2, 0.125f);
     start.x += initial_spacing.x;
     start.y += initial_spacing.y;
     float distance_effective;
@@ -223,15 +220,6 @@ void world_add_right_ir_sensor_reading(float distance) {
         VariancePoint p = {start, 0.0, {0, 0, 0, 0}};
         add_evict(occupied_points, &num_occupied_points, WORLD_OCCUPIED_POINTS, &occupied_points_evict_row, p);
     }
-}
-
-void world_add_front_ultrasonic_reading(float distance) {
-}
-
-void world_add_left_ultrasonic_reading(float distance) {
-}
-
-void world_add_right_ultrasonic_reading(float distance) {
 }
 
 void world_update_movement(OrientPoint movement) {

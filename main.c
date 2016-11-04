@@ -18,8 +18,8 @@
 #define TEST_WORLD_SEED 18274
 #define TEST_WORLD_WALKS 1000
 #define TEST_WORLD_WALLS 20
-#define TEST_WORLD_WALK_DIS_DELTA 0.1
-#define TEST_WORLD_WALK_ANG_DELTA 0.1
+#define TEST_WORLD_WALK_DIS_DELTA 0.02
+#define TEST_WORLD_WALK_ANG_DELTA 0.03
 
 static VariancePoint test_points[MAX_TEST_ADD_EVICT_POINTS];
 
@@ -218,31 +218,40 @@ void test_world() {
             rover_point.angle += delta_angle / angle_segments;
             world_update_movement(rover_point);
             // Forward IR sensor.
-            AbsolutePoint angle_s_del_forward = angle_delta(rover_point.angle, 0.1f);
-            AbsolutePoint angle_del_forward = angle_delta(rover_point.angle, 1.0f + 0.1f);
-            AbsolutePoint start_range_pos_forward = {rover_point.vp.p.x + angle_s_del_forward.x, rover_point.vp.p.y + angle_s_del_forward.y};
-            AbsolutePoint end_range_pos_forward = {rover_point.vp.p.x + angle_del_forward.x, rover_point.vp.p.y + angle_del_forward.y};
+            AbsolutePoint angle_s_del_forward_right = angle_delta(rover_point.angle - 0.2915f, 0.2175f);
+            AbsolutePoint angle_del_forward_right = angle_delta(rover_point.angle, 0.6f);
+            AbsolutePoint start_range_pos_forward_right = {rover_point.vp.p.x + angle_s_del_forward_right.x, rover_point.vp.p.y + angle_s_del_forward_right.y};
+            AbsolutePoint end_range_pos_forward_right =
+                {start_range_pos_forward_right.x + angle_del_forward_right.x, start_range_pos_forward_right.y + angle_del_forward_right.y};
             // Left IR sensor.
-            AbsolutePoint angle_s_del_left = angle_delta(rover_point.angle - (float)M_PI / 2, 0.05f);
-            AbsolutePoint angle_del_left = angle_delta(rover_point.angle - (float)M_PI / 2, 1.0f + 0.05f);
-            AbsolutePoint start_range_pos_left = {rover_point.vp.p.x + angle_s_del_left.x, rover_point.vp.p.y + angle_s_del_left.y};
-            AbsolutePoint end_range_pos_left = {rover_point.vp.p.x + angle_del_left.x, rover_point.vp.p.y + angle_del_left.y};
+            AbsolutePoint angle_s_del_forward_left = angle_delta(rover_point.angle + 0.197395f, 0.212459f);
+            AbsolutePoint angle_del_forward_left = angle_delta(rover_point.angle, 0.6f);
+            AbsolutePoint start_range_pos_forward_left = {rover_point.vp.p.x + angle_s_del_forward_left.x, rover_point.vp.p.y + angle_s_del_forward_left.y};
+            AbsolutePoint end_range_pos_forward_left =
+                {start_range_pos_forward_left.x + angle_del_forward_left.x, start_range_pos_forward_left.y + angle_del_forward_left.y};
             // Right IR sensor.
-            AbsolutePoint angle_s_del_right = angle_delta(rover_point.angle + (float)M_PI / 2, 0.05f);
-            AbsolutePoint angle_del_right = angle_delta(rover_point.angle + (float)M_PI / 2, 1.0f + 0.05f);
-            AbsolutePoint start_range_pos_right = {rover_point.vp.p.x + angle_s_del_right.x, rover_point.vp.p.y + angle_s_del_right.y};
-            AbsolutePoint end_range_pos_right = {rover_point.vp.p.x + angle_del_right.x, rover_point.vp.p.y + angle_del_right.y};
+            AbsolutePoint angle_s_del_left = angle_delta(rover_point.angle + (float)M_PI / 2, 0.125f);
+            AbsolutePoint angle_del_left = angle_delta(rover_point.angle + (float)M_PI / 2, 0.6f);
+            AbsolutePoint start_range_pos_left = {rover_point.vp.p.x + angle_s_del_left.x, rover_point.vp.p.y + angle_s_del_left.y};
+            AbsolutePoint end_range_pos_left =
+                {start_range_pos_left.x + angle_del_left.x, start_range_pos_left.y + angle_del_left.y};
 
-            float shortest_distance_forward = 1.0;
-            float shortest_distance_left = 1.0;
-            float shortest_distance_right = 1.0;
+            float shortest_distance_forward_right = 0.8f;
+            float shortest_distance_forward_left = 0.8f;
+            float shortest_distance_left = 0.8f;
             AbsolutePoint intersection;
             for (k = 0; k < TEST_WORLD_WALLS; k++) {
-                // Forward
-                if (intersection_point(walls[k][0], walls[k][1], start_range_pos_forward, end_range_pos_forward, &intersection)) {
-                    float next_distance = sqrtf(point_distance_squared(&start_range_pos_forward, &intersection));
-                    if (next_distance < shortest_distance_forward)
-                        shortest_distance_forward = next_distance;
+                // Forward-right
+                if (intersection_point(walls[k][0], walls[k][1], start_range_pos_forward_right, end_range_pos_forward_right, &intersection)) {
+                    float next_distance = sqrtf(point_distance_squared(&start_range_pos_forward_right, &intersection));
+                    if (next_distance < shortest_distance_forward_right)
+                        shortest_distance_forward_right = next_distance;
+                }
+                // Forward-left
+                if (intersection_point(walls[k][0], walls[k][1], start_range_pos_forward_left, end_range_pos_forward_left, &intersection)) {
+                    float next_distance = sqrtf(point_distance_squared(&start_range_pos_forward_left, &intersection));
+                    if (next_distance < shortest_distance_forward_left)
+                        shortest_distance_forward_left = next_distance;
                 }
                 // Left
                 if (intersection_point(walls[k][0], walls[k][1], start_range_pos_left, end_range_pos_left, &intersection)) {
@@ -250,17 +259,11 @@ void test_world() {
                     if (next_distance < shortest_distance_left)
                         shortest_distance_left = next_distance;
                 }
-                // Right
-                if (intersection_point(walls[k][0], walls[k][1], start_range_pos_right, end_range_pos_right, &intersection)) {
-                    float next_distance = sqrtf(point_distance_squared(&start_range_pos_right, &intersection));
-                    if (next_distance < shortest_distance_right)
-                        shortest_distance_right = next_distance;
-                }
             }
 
-            world_add_front_ir_sensor_reading(shortest_distance_forward);
+            world_add_front_right_ir_sensor_reading(shortest_distance_forward_right);
+            world_add_front_left_ir_sensor_reading(shortest_distance_forward_left);
             world_add_left_ir_sensor_reading(shortest_distance_left);
-            world_add_right_ir_sensor_reading(shortest_distance_right);
 
             draw_world();
 
@@ -276,31 +279,40 @@ void test_world() {
             rover_point.vp.p.y += move_delta.y;
             world_update_movement(rover_point);
             // Forward IR sensor.
-            AbsolutePoint angle_s_del_forward = angle_delta(rover_point.angle, 0.1f);
-            AbsolutePoint angle_del_forward = angle_delta(rover_point.angle, 1.0f + 0.1f);
-            AbsolutePoint start_range_pos_forward = {rover_point.vp.p.x + angle_s_del_forward.x, rover_point.vp.p.y + angle_s_del_forward.y};
-            AbsolutePoint end_range_pos_forward = {rover_point.vp.p.x + angle_del_forward.x, rover_point.vp.p.y + angle_del_forward.y};
+            AbsolutePoint angle_s_del_forward_right = angle_delta(rover_point.angle - 0.2915f, 0.2175f);
+            AbsolutePoint angle_del_forward_right = angle_delta(rover_point.angle, 0.6f);
+            AbsolutePoint start_range_pos_forward_right = {rover_point.vp.p.x + angle_s_del_forward_right.x, rover_point.vp.p.y + angle_s_del_forward_right.y};
+            AbsolutePoint end_range_pos_forward_right =
+                {start_range_pos_forward_right.x + angle_del_forward_right.x, start_range_pos_forward_right.y + angle_del_forward_right.y};
             // Left IR sensor.
-            AbsolutePoint angle_s_del_left = angle_delta(rover_point.angle - (float)M_PI / 2, 0.05f);
-            AbsolutePoint angle_del_left = angle_delta(rover_point.angle - (float)M_PI / 2, 1.0f + 0.05f);
-            AbsolutePoint start_range_pos_left = {rover_point.vp.p.x + angle_s_del_left.x, rover_point.vp.p.y + angle_s_del_left.y};
-            AbsolutePoint end_range_pos_left = {rover_point.vp.p.x + angle_del_left.x, rover_point.vp.p.y + angle_del_left.y};
+            AbsolutePoint angle_s_del_forward_left = angle_delta(rover_point.angle + 0.197395f, 0.212459f);
+            AbsolutePoint angle_del_forward_left = angle_delta(rover_point.angle, 0.6f);
+            AbsolutePoint start_range_pos_forward_left = {rover_point.vp.p.x + angle_s_del_forward_left.x, rover_point.vp.p.y + angle_s_del_forward_left.y};
+            AbsolutePoint end_range_pos_forward_left =
+                {start_range_pos_forward_left.x + angle_del_forward_left.x, start_range_pos_forward_left.y + angle_del_forward_left.y};
             // Right IR sensor.
-            AbsolutePoint angle_s_del_right = angle_delta(rover_point.angle + (float)M_PI / 2, 0.05f);
-            AbsolutePoint angle_del_right = angle_delta(rover_point.angle + (float)M_PI / 2, 1.0f + 0.05f);
-            AbsolutePoint start_range_pos_right = {rover_point.vp.p.x + angle_s_del_right.x, rover_point.vp.p.y + angle_s_del_right.y};
-            AbsolutePoint end_range_pos_right = {rover_point.vp.p.x + angle_del_right.x, rover_point.vp.p.y + angle_del_right.y};
+            AbsolutePoint angle_s_del_left = angle_delta(rover_point.angle + (float)M_PI / 2, 0.125f);
+            AbsolutePoint angle_del_left = angle_delta(rover_point.angle + (float)M_PI / 2, 0.6f);
+            AbsolutePoint start_range_pos_left = {rover_point.vp.p.x + angle_s_del_left.x, rover_point.vp.p.y + angle_s_del_left.y};
+            AbsolutePoint end_range_pos_left =
+                {start_range_pos_left.x + angle_del_left.x, start_range_pos_left.y + angle_del_left.y};
 
-            float shortest_distance_forward = 1.0;
-            float shortest_distance_left = 1.0;
-            float shortest_distance_right = 1.0;
+            float shortest_distance_forward_right = 0.8f;
+            float shortest_distance_forward_left = 0.8f;
+            float shortest_distance_left = 0.8f;
             AbsolutePoint intersection;
             for (k = 0; k < TEST_WORLD_WALLS; k++) {
-                // Forward
-                if (intersection_point(walls[k][0], walls[k][1], start_range_pos_forward, end_range_pos_forward, &intersection)) {
-                    float next_distance = sqrtf(point_distance_squared(&start_range_pos_forward, &intersection));
-                    if (next_distance < shortest_distance_forward)
-                        shortest_distance_forward = next_distance;
+                // Forward-right
+                if (intersection_point(walls[k][0], walls[k][1], start_range_pos_forward_right, end_range_pos_forward_right, &intersection)) {
+                    float next_distance = sqrtf(point_distance_squared(&start_range_pos_forward_right, &intersection));
+                    if (next_distance < shortest_distance_forward_right)
+                        shortest_distance_forward_right = next_distance;
+                }
+                // Forward-left
+                if (intersection_point(walls[k][0], walls[k][1], start_range_pos_forward_left, end_range_pos_forward_left, &intersection)) {
+                    float next_distance = sqrtf(point_distance_squared(&start_range_pos_forward_left, &intersection));
+                    if (next_distance < shortest_distance_forward_left)
+                        shortest_distance_forward_left = next_distance;
                 }
                 // Left
                 if (intersection_point(walls[k][0], walls[k][1], start_range_pos_left, end_range_pos_left, &intersection)) {
@@ -308,17 +320,11 @@ void test_world() {
                     if (next_distance < shortest_distance_left)
                         shortest_distance_left = next_distance;
                 }
-                // Right
-                if (intersection_point(walls[k][0], walls[k][1], start_range_pos_right, end_range_pos_right, &intersection)) {
-                    float next_distance = sqrtf(point_distance_squared(&start_range_pos_right, &intersection));
-                    if (next_distance < shortest_distance_right)
-                        shortest_distance_right = next_distance;
-                }
             }
 
-            world_add_front_ir_sensor_reading(shortest_distance_forward);
+            world_add_front_right_ir_sensor_reading(shortest_distance_forward_right);
+            world_add_front_left_ir_sensor_reading(shortest_distance_forward_left);
             world_add_left_ir_sensor_reading(shortest_distance_left);
-            world_add_right_ir_sensor_reading(shortest_distance_right);
 
             draw_world();
 

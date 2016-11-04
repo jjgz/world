@@ -64,18 +64,12 @@ void add_evict(VariancePoint *points, unsigned *current, unsigned max, unsigned 
 /// Run to init the world model.
 void world_init(OrientPoint rover_a, unsigned num_targets, float initial_target_spawn_radius,
                 AbsolutePoint *borders, unsigned total_border_points);
-/// Add an ir sensor reading from the front-facing IR sensor on rover A.
-void world_add_front_ir_sensor_reading(float distance);
+/// Add an ir sensor reading from the front-right-facing IR sensor on rover A.
+void world_add_front_right_ir_sensor_reading(float distance);
+/// Add an ir sensor reading from the front-left-facing IR sensor on rover A.
+void world_add_front_left_ir_sensor_reading(float distance);
 /// Add an ir sensor reading from the left-facing IR sensor on rover A.
 void world_add_left_ir_sensor_reading(float distance);
-/// Add an ir sensor reading from the right-facing IR sensor on rover A.
-void world_add_right_ir_sensor_reading(float distance);
-/// Add an ultrasonic sensor reading from the front-facing ultrasonic sensor on rover A.
-void world_add_front_ultrasonic_reading(float distance);
-/// Add an ultrasonic sensor reading from the left-facing ultrasonic sensor on rover A.
-void world_add_left_ultrasonic_reading(float distance);
-/// Add an ultrasonic sensor reading from the right-facing ultrasonic sensor on rover A.
-void world_add_right_ultrasonic_reading(float distance);
 /// Add movement from rover A's movement module.
 void world_update_movement(OrientPoint movement);
 /// Cycle the world.

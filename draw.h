@@ -5,8 +5,8 @@
 #include <stdint.h>
 
 #define DRAW_DIMS 1024
-#define DRAW_ROVER_WIDTH 20
-#define DRAW_ROVER_LENGTH 30
+#define DRAW_ROVER_WIDTH 34
+#define DRAW_ROVER_LENGTH 68
 
 void draw_init(void);
 void draw_render_start(void);
