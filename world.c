@@ -1,6 +1,6 @@
 #include "world.h"
 #include <stdlib.h>
-#include <math.h>
+#include <stdint.h>
 
 typedef struct {
     AbsolutePoint pos;
@@ -28,34 +28,6 @@ static OrientPoint rover;
 static VelocityPoint targets[WORLD_TARGET_POINTS_MAX];
 static VariancePoint target_stat_points[WORLD_TARGET_POINTS_MAX];
 static unsigned num_targets;
-
-float point_distance_squared(AbsolutePoint *p0, AbsolutePoint *p1) {
-    return powf(p0->x - p1->x, 2) + powf(p0->y - p1->y, 2);
-}
-
-float delta_distance_squared(AbsolutePoint delta) {
-    return powf(delta.x, 2) + powf(delta.y, 2);
-}
-
-AbsolutePoint point_delta(AbsolutePoint *from, AbsolutePoint *to) {
-    AbsolutePoint p = {to->x - from->x, to->y - from->y};
-    return p;
-}
-
-AbsolutePoint angle_delta(float angle, float mag) {
-    AbsolutePoint p = {mag * cosf(angle), mag * sinf(angle)};
-    return p;
-}
-
-bool between(float start, float end, float p);
-bool between(float start, float end, float p) {
-    if (start < end) {
-        return p > start && p < end;
-    } else {
-        return p > end && p < start;
-    }
-    return false;
-}
 
 bool intersection_point(AbsolutePoint a0, AbsolutePoint a1, AbsolutePoint b0,
                         AbsolutePoint b1, AbsolutePoint *intersection) {
@@ -159,7 +131,6 @@ void world_add_front_right_ir_sensor_reading(float distance) {
         start.x += point_spacing.x;
         start.y += point_spacing.y;
     }
-    // TODO: Correct max distance.
     if (distance < longest_ir_distance) {
         VariancePoint p = {start, 0.0, {0, 0, 0, 0}};
         add_evict(occupied_points, &num_occupied_points, WORLD_OCCUPIED_POINTS, &occupied_points_evict_row, p);
@@ -187,7 +158,6 @@ void world_add_front_left_ir_sensor_reading(float distance) {
         start.x += point_spacing.x;
         start.y += point_spacing.y;
     }
-    // TODO: Correct max distance.
     if (distance < longest_ir_distance) {
         VariancePoint p = {start, 0.0, {0, 0, 0, 0}};
         add_evict(occupied_points, &num_occupied_points, WORLD_OCCUPIED_POINTS, &occupied_points_evict_row, p);
@@ -215,7 +185,6 @@ void world_add_left_ir_sensor_reading(float distance) {
         start.x += point_spacing.x;
         start.y += point_spacing.y;
     }
-    // TODO: Correct max distance.
     if (distance < longest_ir_distance) {
         VariancePoint p = {start, 0.0, {0, 0, 0, 0}};
         add_evict(occupied_points, &num_occupied_points, WORLD_OCCUPIED_POINTS, &occupied_points_evict_row, p);
@@ -226,7 +195,56 @@ void world_update_movement(OrientPoint movement) {
     rover = movement;
 }
 
+void world_rover_aligned() {
+    // Initial assumption: Assume the latest movement has the correct alignment.
+    // Iterate over all border edges.
+    unsigned i;
+    AbsolutePoint rover_center = rover.vp.p;
+    AbsolutePoint rover_forwards = angle_delta(rover.angle, 5.0f);
+    rover_forwards.x += rover_center.x;
+    rover_forwards.y += rover_center.y;
+    AbsolutePoint intersection;
+    bool is_intersected = false;
+    float best_intersection = 50.0f;
+    unsigned best_index;
+    // NOTE: This fails if num_arena_border_points is 1, but otherwise does not.
+    for (i = 0; i < num_arena_border_points; i++) {
+        AbsolutePoint *a = &arena_border_points[i];
+        AbsolutePoint *b = &arena_border_points[(i+1) % num_arena_border_points];
+        AbsolutePoint current_intersect;
+        bool current_intersected = intersection_point(*a, *b, rover_center,
+                        rover_forwards, &current_intersect);
+        if (current_intersected) {
+            float distance_squared = point_distance_squared(&rover_center, &current_intersect);
+            if (distance_squared < best_intersection) {
+                best_intersection = distance_squared;
+                intersection = current_intersect;
+                is_intersected = true;
+                best_index = i;
+            }
+        }
+    }
+    
+    if (is_intersected) {
+        // Go the amount backwards by which the alignment sensor is forwards
+        AbsolutePoint rover_backwards = angle_delta(-rover.angle, 0.21f);
+        intersection.x += rover_backwards.x;
+        intersection.y += rover_backwards.y;
+        // Set this as the new rover position.
+        rover.vp.p = intersection;
+        
+        AbsolutePoint *a = &arena_border_points[best_index];
+        AbsolutePoint *b = &arena_border_points[(best_index+1) % num_arena_border_points];
+        
+        // Get the atan2 of the border delta (which is counterclockwise).
+        float border_angle = atan2(b->y - a->y, b->x - a->x);
+        // Set the rover's angle to be the border angle turned right by pi/2.
+        rover.angle = border_angle - M_PI_2;
+    }
+}
+
 void world_update() {
+    // TODO: Look for targets.
 }
 
 unsigned world_retrieve_arena_border_points(AbsolutePoint **points) {
