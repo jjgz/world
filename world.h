@@ -24,6 +24,8 @@
 #define ADD_EVICT_ROWS 512
 
 #define MIN_INTERSECTION_DENOM 0.000001f
+#define CLOSE_EVICT_OCCUPIED 0.01f
+#define CLOSE_EVICT_CLEAR 0.01f
 
 typedef struct {
     float x, y;
