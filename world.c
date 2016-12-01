@@ -1,6 +1,7 @@
 #include "world.h"
 #include <stdlib.h>
 #include <stdint.h>
+#include <float.h>
 
 typedef struct {
     AbsolutePoint pos;
@@ -76,13 +77,13 @@ void add_evict(VariancePoint *points, unsigned *current, unsigned max, unsigned 
         points[(*current)++] = npoint;
         return;
     } else {
-        float smallest_distance = point_distance_squared(&(points + 0)->p, &(points + 1)->p);
+        float smallest_distance = point_distance_squared((points + 0)->p, (points + 1)->p);
         unsigned evict_index = 0;
 
         unsigned i, j;
         for (i = *evict_row; i < max; i += ADD_EVICT_ROWS) {
             for (j = i + 1; j < max; j++) {
-                float current_distance = point_distance_squared(&(points + i)->p, &(points + j)->p);
+                float current_distance = point_distance_squared((points + i)->p, (points + j)->p);
                 if (current_distance < smallest_distance) {
                     smallest_distance = current_distance;
                     evict_index = i;
@@ -95,7 +96,7 @@ void add_evict(VariancePoint *points, unsigned *current, unsigned max, unsigned 
         *evict_row %= ADD_EVICT_ROWS;
 
         for (i = 0; i < max; i++) {
-            float current_distance = point_distance_squared(&(points + i)->p, &npoint.p);
+            float current_distance = point_distance_squared((points + i)->p, npoint.p);
             if (current_distance < smallest_distance) {
                 // The new point has the smallest distance, so dont add it.
                 return;
@@ -109,7 +110,7 @@ void add_evict(VariancePoint *points, unsigned *current, unsigned max, unsigned 
 void evict_close_points(VariancePoint *points, unsigned *current, unsigned max, VariancePoint npoint, float threshold_distance) {
     unsigned i;
     for (i = 0; i < *current; ) {
-        float delta_squared = point_distance_squared(&points[i].p, &npoint.p);
+        float delta_squared = point_distance_squared(points[i].p, npoint.p);
         if (delta_squared < threshold_distance) {
             *current -= 1;
             points[i] = points[*current];
@@ -232,52 +233,44 @@ void world_update_movement(OrientPoint movement) {
     rover = movement;
 }
 
+AbsolutePoint arena_border_index_closest(unsigned i) {
+    AbsolutePoint *a = &arena_border_points[i];
+    AbsolutePoint *b = &arena_border_points[(i+1) % num_arena_border_points];
+    return point_projection(rover.vp.p, *a, *b);
+}
+
 void world_rover_aligned() {
     // Initial assumption: Assume the latest movement has the correct alignment.
     // Iterate over all border edges.
     unsigned i;
-    AbsolutePoint rover_center = rover.vp.p;
-    AbsolutePoint rover_forwards = angle_delta(rover.angle, 5.0f);
-    rover_forwards.x += rover_center.x;
-    rover_forwards.y += rover_center.y;
-    AbsolutePoint intersection;
-    bool is_intersected = false;
-    float best_intersection = 50.0f;
-    unsigned best_index;
+    AbsolutePoint best_position = arena_border_index_closest(0);
+    float best_distance = point_distance_squared(best_position, rover.vp.p);
+    unsigned best_index = 0;
     // NOTE: This has undefined behavior if num_arena_border_points is 1, but otherwise does not.
-    for (i = 0; i < num_arena_border_points; i++) {
-        AbsolutePoint *a = &arena_border_points[i];
-        AbsolutePoint *b = &arena_border_points[(i+1) % num_arena_border_points];
-        AbsolutePoint current_intersect;
-        bool current_intersected = intersection_point(*a, *b, rover_center,
-                        rover_forwards, &current_intersect);
-        if (current_intersected) {
-            float distance_squared = point_distance_squared(&rover_center, &current_intersect);
-            if (distance_squared < best_intersection) {
-                best_intersection = distance_squared;
-                intersection = current_intersect;
-                is_intersected = true;
-                best_index = i;
-            }
+    for (i = 1; i < num_arena_border_points; i++) {
+        AbsolutePoint current_position = arena_border_index_closest(i);
+        float current_distance = point_distance_squared(current_position, rover.vp.p);
+        if (current_distance < best_distance) {
+            best_index = i;
+            best_distance = current_distance;
+            best_position = current_position;
         }
     }
     
-    if (is_intersected) {
-        AbsolutePoint *a = &arena_border_points[best_index];
-        AbsolutePoint *b = &arena_border_points[(best_index+1) % num_arena_border_points];
-        
-        // Get the atan2 of the border delta (which is counterclockwise).
-        float border_angle = atan2(b->y - a->y, b->x - a->x);
-        // Set the rover's angle to be the border angle turned right by pi/2.
-        rover.angle = border_angle - M_PI_2;
-        
-        // Go the amount backwards by which the alignment sensor is forwards
-        AbsolutePoint rover_backwards = angle_delta(-rover.angle, 0.21f);
-        intersection.x += rover_backwards.x;
-        intersection.y += rover_backwards.y;
-        // Set this as the new rover position.
-        rover.vp.p = intersection;
-    }
+    AbsolutePoint *a = &arena_border_points[best_index];
+    AbsolutePoint *b = &arena_border_points[(best_index+1) % num_arena_border_points];
+    
+    // Get the atan2 of the border delta (which is counterclockwise).
+    float border_angle = atan2(b->y - a->y, b->x - a->x);
+    // Set the rover's angle to be the border angle turned right by pi/2.
+    rover.angle = border_angle - M_PI_2;
+
+    // Go the amount backwards by which the alignment sensor is forwards
+    AbsolutePoint rover_backwards = angle_delta(-rover.angle, 0.21f);
+    best_position.x += rover_backwards.x;
+    best_position.y += rover_backwards.y;
+    // Set this as the new rover position.
+    rover.vp.p = best_position;
 }
 
 void world_update() {

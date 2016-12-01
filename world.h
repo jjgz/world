@@ -55,8 +55,8 @@ static inline float speedy_square(float n) {
 }
 
 /// Compute the distance squared between two AbsolutePoint objects.
-static inline float point_distance_squared(AbsolutePoint *p0, AbsolutePoint *p1) {
-    return speedy_square(p0->x - p1->x) + speedy_square(p0->y - p1->y);
+static inline float point_distance_squared(AbsolutePoint p0, AbsolutePoint p1) {
+    return speedy_square(p0.x - p1.x) + speedy_square(p0.y - p1.y);
 }
 
 /// Compute the distance squared between two AbsolutePoint objects.
