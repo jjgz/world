@@ -85,10 +85,16 @@ static inline bool between(float start, float end, float p) {
     return false;
 }
 
+static inline float vector_dot(AbsolutePoint a, AbsolutePoint b) {
+    return a.x * b.x + a.y * b.y;
+}
+
 /// Get the point at which two lines (specified by their endpoints) intersect.
 /// If null is passed only checks for intersection.
 bool intersection_point(AbsolutePoint a0, AbsolutePoint a1, AbsolutePoint b0,
                         AbsolutePoint b1, AbsolutePoint *intersection);
+/// Returns the closest point on the line.
+AbsolutePoint point_projection(AbsolutePoint p, AbsolutePoint l0, AbsolutePoint l1);
 /// Choose which point to evict from an array of points when it gets full.
 void add_evict(VariancePoint *points, unsigned *current, unsigned max, unsigned *evict_row, VariancePoint npoint);
 

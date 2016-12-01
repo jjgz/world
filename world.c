@@ -53,6 +53,24 @@ bool intersection_point(AbsolutePoint a0, AbsolutePoint a1, AbsolutePoint b0,
     return false;
 }
 
+AbsolutePoint point_projection(AbsolutePoint p, AbsolutePoint l0, AbsolutePoint l1) {
+    // Line vector
+    AbsolutePoint v = {l1.x - l0.x, l1.y - l0.y};
+    // Point relative to line beginning
+    AbsolutePoint rp = {p.x - l0.x, p.y - l0.y};
+    float dis_square = delta_distance_squared(v);
+    float projection_length = vector_dot(rp, v) / dis_square;
+    if (projection_length < 0) {
+        return l0;
+    } else if (powf(projection_length, 2) > dis_square) {
+        return l1;
+    } else {
+        // Project the point "vector" onto the line vector and then move it back.
+        AbsolutePoint pp = {v.x * projection_length + l0.x, v.y * projection_length + l0.y};
+        return pp;
+    }
+}
+
 void add_evict(VariancePoint *points, unsigned *current, unsigned max, unsigned *evict_row, VariancePoint npoint) {
     if (*current < max) {
         points[(*current)++] = npoint;
